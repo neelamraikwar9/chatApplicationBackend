@@ -35,11 +35,11 @@ io.on("connection", (socket) => {
 
     socket.on("send_message", async(data) => {
         const { sender, receiver, message } = data; 
-        const newMessage = new Messages({sender, receiver, message})
-        await newMessage.save();
+        const newMessage = new Messages({ sender, receiver, message });
+        const saved = await newMessage.save();
 
-        socket.broadcast.emit("receive_message", data);
-
+          // send full saved message (with _id, createdAt, etc.)
+        socket.broadcast.emit("receive_message", saved);
     });
 
     //Typing Indicator — Show “User is typing…” in real-time
@@ -68,7 +68,8 @@ app.get("/messages", async(req, res) => {
                 { sender, receiver }, 
                 { sender: receiver, receiver: sender},
             ]
-        }).sort({createdAt: 1});
+        })
+        .sort({createdAt: 1});
         res.json(messages);
     } catch (error) {
         res.status(500).json({message: "Error fetching messages."})
