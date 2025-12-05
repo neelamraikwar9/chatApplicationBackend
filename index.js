@@ -42,7 +42,17 @@ io.on("connection", (socket) => {
 
     });
 
-    // socket.broadcast.emit("receive_message", data);
+    //Typing Indicator — Show “User is typing…” in real-time
+
+  socket.on("typing", (data) => {
+  console.log('Server: Broadcasting typing', data);
+  socket.to(data.receiver).emit('typing', data);   
+});
+
+  socket.on("stop_typing", (data) => {
+  socket.to(data.receiver).emit('stop_typing', data); 
+});
+
 
     socket.on("disconnect", () => {
         console.log("User disconnected", socket.id);
