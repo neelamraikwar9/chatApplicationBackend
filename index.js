@@ -34,12 +34,41 @@ io.on("connection", (socket) => {
     console.log("User connected", socket.id);
 
     socket.on("send_message", async(data) => {
-        const { sender, receiver, message } = data; 
-        const newMessage = new Messages({ sender, receiver, message });
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+        // const { sender, receiver, message } = data; 
+        // const newMessage = new Messages({ sender, receiver, message });
+
+        const newMessage = new Messages({
+        ...data,   // sender, receiver, message (from existing fields)
+         messageId,
+         status: 'sent',
+    });
         const saved = await newMessage.save();
 
-          // send full saved message (with _id, createdAt, etc.)
-        socket.broadcast.emit("receive_message", saved);
+        //   send full saved message (with _id, createdAt, etc.)
+        // socket.broadcast.emit("receive_message", saved);
+
+                 // send to receiver
+        socket.to(data.receiver).emit("receive_message", saved.toObject());
+
+           // send back to sender too (so sender gets messageId + status)
+  socket.emit("receive_message", saved.toObject());
+
+        //  // send to receiver
+        // socket.to(data.receiver).emit("receive_message", saved.toObject());
+
+     
+
+
+
+//         // Emit to receiver's socket room
+//   socket.to(data.receiver).emit('message', newMessage.toObject());
+
+
+// Confirm to sender
+  socket.emit('message_delivered', { messageId });
+  
     });
 
     //Typing Indicator — Show “User is typing…” in real-time
@@ -57,6 +86,42 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log("User disconnected", socket.id);
     });
+
+
+//status tracking for Read Receipt; 
+// socket.on('message', async(data) => {
+//     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+//     const newMessage = new Messages({
+//         ...data,   // sender, receiver, message (from existing fields)
+//          messageId,
+//          status: 'sent',
+//     });
+
+//       await newMessage.save();
+  
+//   // Emit to receiver's socket room
+// //   socket.to(data.receiver).emit('message', newMessage.toObject());
+
+
+//   // Confirm to sender
+//   socket.emit('message_delivered', { messageId });
+// });
+
+
+
+//4. Backend Read Receipt Handler
+
+//Mark as Read; 
+socket.on('message_read', async (data) => {
+    await Messages.updateMany(
+        { messageId: { $in: data.messageIds }, status: { $ne: 'read' } },
+        { status: 'read' }
+    );
+
+    socket.to(data.sender).emit('message_read', { messageIds: data.messageIds });
+});
+
 });
 
 
