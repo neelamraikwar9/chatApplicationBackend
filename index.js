@@ -61,6 +61,13 @@ io.on("connection", (socket) => {
     // io.to(data.receiver).emit("receive_message", saved.toObject());
     socket.to(data.receiver).emit("receive_message", saved.toObject());
     
+    
+
+
+    //reciver confirms deliver; 
+    socket.to(data.receiver).emit("message_delivered", {messageId: saved.messageId});
+
+
     // Optionally send back to sender
     socket.emit("receive_message", saved.toObject());
     
@@ -81,18 +88,37 @@ io.on("connection", (socket) => {
   });
 
   //4. Read Receipt Handler
+
+  //Mark as delivered;
+  socket.on("message_delivered", async (data) => {
+    // updating single message in db; 
+
+    await Messages.updateOne(
+      {messageId: data.messageId},
+      {status: "delivered"}  // Gray double tick ✓✓
+    );
+       // Notify sender only
+    socket.to(data.sender).emit("message_delivered", {
+    messageId: data.messageId
+    }
+    )
+  })
+
+
   // Mark as Read;
   socket.on("message_read", async (data) => {
-    console.log( data.messageId, "messageIds");
-    
-    await Messages.updateMany(
-      { messageId: { $in: data.messageId}, status: { $ne: "read" } },
+    console.log( data, "dataa");
+
+   const result = await Messages.updateMany(
+      { messageId: { $in: data.messageIds}, status: { $ne: "read" } },
       { status: "read" }
     );
     
+      console.log("Updated", result.modifiedCount, "messages");
 
-        // Notify sender only
-    socket.to(data.sender).emit("message_read", { messageIds: data.messageId });
+        if(result.modifiedCount > 0){
+    socket.to(data.sender).emit("message_read", { messageIds: data.messageIds });
+        }
   }); 
  
 
