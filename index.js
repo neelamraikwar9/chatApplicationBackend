@@ -15,7 +15,6 @@ const io = new Server(server, {
   cors: {
     // origin: "http://localhost:3000",
     origin: "*",
-
   },
 });
 
@@ -29,19 +28,17 @@ mongoose
 
 app.use("/auth", authRoutes);
 
-
 //socket io logic
 
 io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
-   socket.on("user_Room", (username) => {
+  socket.on("user_Room", (username) => {
     socket.join(username); // join room = username
     // console.log(`${username} joined room ${username}`);
-     console.log("✅ ROOM JOINED:", username);
+    console.log("✅ ROOM JOINED:", username);
     console.log(`Socket ${socket.id} joined chat ${username}`);
   });
-
 
   socket.on("send_message", async (data) => {
     console.log(data.receiver, "dataReciverrrrr");
@@ -59,78 +56,63 @@ io.on("connection", (socket) => {
 
     console.log(data.receiver, "dataReciver");
 
-      // Send to the receiver’s room
+    // Send to the receiver’s room
     // io.to(data.receiver).emit("receive_message", saved.toObject());
     socket.to(data.receiver).emit("receive_message", saved.toObject());
-    
-    
 
-
-    //reciver confirms deliver; 
-    socket.to(data.receiver).emit("message_delivered", {messageId: saved.messageId});
-
+    //reciver confirms deliver;
+    socket
+      .to(data.receiver)
+      .emit("message_delivered", { messageId: saved.messageId });
 
     // Optionally send back to sender
     socket.emit("receive_message", saved.toObject());
-    
   });
 
-      //Typing Indicator — Show “User is typing…” in real-time
- 
-//   socket.on("typing", (data) => {
-//   console.log('Typing:', data);
-//   // ✅ socket.to() targets OTHER users in SAME ROOM (excludes sender automatically)
-//   socket.to(data.currentChat).emit('user_typing', {
-//     sender: data.sender,
-//     username: data.currentChat,
-//     isTyping: true
-//   });
-// });
+  //Typing Indicator — Show “User is typing…” in real-time
 
-// socket.on("stop_typing", (data) => {
-//   console.log(data.currentChat, "currrekdfdkfj")
-//   socket.to(data.currentChat).emit('user_typing', {
-//     sender: data.sender,
-//     username: data.currentChat,
-//     isTyping: false
-//   });
-// });
+  //   socket.on("typing", (data) => {
+  //   console.log('Typing:', data);
+  //   // ✅ socket.to() targets OTHER users in SAME ROOM (excludes sender automatically)
+  //   socket.to(data.currentChat).emit('user_typing', {
+  //     sender: data.sender,
+  //     username: data.currentChat,
+  //     isTyping: true
+  //   });
+  // });
 
+  // socket.on("stop_typing", (data) => {
+  //   console.log(data.currentChat, "currrekdfdkfj")
+  //   socket.to(data.currentChat).emit('user_typing', {
+  //     sender: data.sender,
+  //     username: data.currentChat,
+  //     isTyping: false
+  //   });
+  // });
 
-//  socket.on("join chat", (room) => {
-//     socket.join(room);
-//     // console.log(room);
-//     console.log("User Joined Room: " + room);
+  //  socket.on("join chat", (room) => {
+  //     socket.join(room);
+  //     // console.log(room);
+  //     console.log("User Joined Room: " + room);
 
-//     console.log(room, "roomm");
+  //     console.log(room, "roomm");
 
-//   });
+  //   });
 
+  // socket.on('typing', (currentChat) => socket.in(currentChat).emit("typing"));
+  // socket.on('stop typing', (currentChat) => socket.in(currentChat).emit("stop typing"))
 
-// socket.on('typing', (currentChat) => socket.in(currentChat).emit("typing")); 
-// socket.on('stop typing', (currentChat) => socket.in(currentChat).emit("stop typing"))
+  // socket.on('typing', (data) => {
+  //   console.log('Typing from', data.sender, 'to', data.receiver);
+  //   socket.to(data.receiver).emit('user_typing', { sender: data.sender, isTyping: true });
+  // });
 
+  // socket.on('stop_typing', (data) => {
+  //   console.log('Stop typing from', data.sender, 'to', data.receiver);
+  //   socket.to(data.receiver).emit('user_typing', { sender: data.sender, isTyping: false });
+  // });
 
-
-
-
-// socket.on('typing', (data) => {
-//   console.log('Typing from', data.sender, 'to', data.receiver);
-//   socket.to(data.receiver).emit('user_typing', { sender: data.sender, isTyping: true });
-// });
-
-// socket.on('stop_typing', (data) => {
-//   console.log('Stop typing from', data.sender, 'to', data.receiver);
-//   socket.to(data.receiver).emit('user_typing', { sender: data.sender, isTyping: false });
-// });
-
-
-
-
-
-
-
- // 2. TYPING - SIMPLIFIED (NO data object needed)
+  // 2. TYPING - SIMPLIFIED (NO data object needed)
   socket.on("typing", (room) => {
     console.log("🔥 TYPING IN:", room);
     socket.to(room).emit("typing", true);
@@ -141,49 +123,42 @@ io.on("connection", (socket) => {
     socket.to(room).emit("typing", false);
   });
 
-
-
-  
-
   socket.on("disconnect", () => {
     console.log("User disconnected", socket.id);
   });
 
   //4. Read Receipt Handler
-
   //Mark as delivered;
   socket.on("message_delivered", async (data) => {
-    // updating single message in db; 
+    // updating single message in db;
 
     await Messages.updateOne(
-      {messageId: data.messageId},
-      {status: "delivered"}  // Gray double tick ✓✓
+      { messageId: data.messageId },
+      { status: "delivered" } // Gray double tick ✓✓
     );
-       // Notify sender only
+    // Notify sender only
     socket.to(data.sender).emit("message_delivered", {
-    messageId: data.messageId
-    }
-    )
-  })
-
+      messageId: data.messageId,
+    });
+  });
 
   // Mark as Read;
   socket.on("message_read", async (data) => {
-    console.log( data, "dataa");
+    console.log(data, "dataa");
 
-   const result = await Messages.updateMany(
-      { messageId: { $in: data.messageIds}, status: { $ne: "read" } },
+    const result = await Messages.updateMany(
+      { messageId: { $in: data.messageIds }, status: { $ne: "read" } },
       { status: "read" }
     );
-    
-      console.log("Updated", result.modifiedCount, "messages");
 
-        if(result.modifiedCount > 0){
-    socket.to(data.sender).emit("message_read", { messageIds: data.messageIds });
-        }
-  }); 
- 
+    console.log("Updated", result.modifiedCount, "messages");
 
+    if (result.modifiedCount > 0) {
+      socket
+        .to(data.sender)
+        .emit("message_read", { messageIds: data.messageIds });
+    }
+  });
 });
 
 app.get("/messages", async (req, res) => {
@@ -211,9 +186,5 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// const PORT = process.env.PORT || 5001;
-// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
