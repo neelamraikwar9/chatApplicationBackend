@@ -37,7 +37,9 @@ io.on("connection", (socket) => {
 
    socket.on("user_Room", (username) => {
     socket.join(username); // join room = username
-    console.log(`${username} joined room ${username}`);
+    // console.log(`${username} joined room ${username}`);
+     console.log("✅ ROOM JOINED:", username);
+    console.log(`Socket ${socket.id} joined chat ${username}`);
   });
 
 
@@ -73,15 +75,75 @@ io.on("connection", (socket) => {
     
   });
 
-  //     //Typing Indicator — Show “User is typing…” in real-time
-  //   socket.on("typing", (data) => {
-  //   console.log('Server: Broadcasting typing', data);
-  //   socket.to(data.receiver).emit('typing', data);
-  // });
+      //Typing Indicator — Show “User is typing…” in real-time
+ 
+//   socket.on("typing", (data) => {
+//   console.log('Typing:', data);
+//   // ✅ socket.to() targets OTHER users in SAME ROOM (excludes sender automatically)
+//   socket.to(data.currentChat).emit('user_typing', {
+//     sender: data.sender,
+//     username: data.currentChat,
+//     isTyping: true
+//   });
+// });
 
-  //   socket.on("stop_typing", (data) => {
-  //   socket.to(data.receiver).emit('stop_typing', data);
-  // });
+// socket.on("stop_typing", (data) => {
+//   console.log(data.currentChat, "currrekdfdkfj")
+//   socket.to(data.currentChat).emit('user_typing', {
+//     sender: data.sender,
+//     username: data.currentChat,
+//     isTyping: false
+//   });
+// });
+
+
+//  socket.on("join chat", (room) => {
+//     socket.join(room);
+//     // console.log(room);
+//     console.log("User Joined Room: " + room);
+
+//     console.log(room, "roomm");
+
+//   });
+
+
+// socket.on('typing', (currentChat) => socket.in(currentChat).emit("typing")); 
+// socket.on('stop typing', (currentChat) => socket.in(currentChat).emit("stop typing"))
+
+
+
+
+
+// socket.on('typing', (data) => {
+//   console.log('Typing from', data.sender, 'to', data.receiver);
+//   socket.to(data.receiver).emit('user_typing', { sender: data.sender, isTyping: true });
+// });
+
+// socket.on('stop_typing', (data) => {
+//   console.log('Stop typing from', data.sender, 'to', data.receiver);
+//   socket.to(data.receiver).emit('user_typing', { sender: data.sender, isTyping: false });
+// });
+
+
+
+
+
+
+
+ // 2. TYPING - SIMPLIFIED (NO data object needed)
+  socket.on("typing", (room) => {
+    console.log("🔥 TYPING IN:", room);
+    socket.to(room).emit("typing", true);
+  });
+
+  socket.on("stop_typing", (room) => {
+    console.log("🛑 STOP TYPING IN:", room);
+    socket.to(room).emit("typing", false);
+  });
+
+
+
+  
 
   socket.on("disconnect", () => {
     console.log("User disconnected", socket.id);
